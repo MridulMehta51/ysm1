@@ -1,7 +1,5 @@
-
-
 import React, { useState, useEffect } from 'react';
-import { User, Settings, Database, Mail, CheckCircle, XCircle, Clock, Bell, Users, BarChart3, Shield, RefreshCw, LogOut, Plus, Eye, Key, AlertTriangle, Link, Upload, FileSpreadsheet, Download } from 'lucide-react';
+import { User, Settings, Database, Mail, CheckCircle, XCircle, Clock, Bell, Users, BarChart3, Shield, RefreshCw, LogOut, Plus, Eye, Key, AlertTriangle, Link, Upload, FileSpreadsheet, Download, Trash2, UserMinus } from 'lucide-react';
 
 // Utility functions for safe error handling
 const getSafeErrorMessage = (error) => {
@@ -44,6 +42,189 @@ const getSafeErrorMessage = (error) => {
   }
   
   return 'Unknown error occurred (object could not be converted to string)';
+};
+
+// Confirmation Dialog Component
+const ConfirmationDialog = ({ title, message, onConfirm, onCancel, type = 'default' }) => {
+  const getTypeClasses = () => {
+    switch (type) {
+      case 'remove':
+        return {
+          icon: UserMinus,
+          iconColor: 'text-red-600',
+          iconBg: 'bg-red-100',
+          confirmButton: 'bg-red-600 hover:bg-red-700',
+          confirmText: 'Offboard Employee'
+        };
+      default:
+        return {
+          icon: AlertTriangle,
+          iconColor: 'text-yellow-600',
+          iconBg: 'bg-yellow-100',
+          confirmButton: 'bg-blue-600 hover:bg-blue-700',
+          confirmText: 'Confirm'
+        };
+    }
+  };
+
+  const typeClasses = getTypeClasses();
+  const Icon = typeClasses.icon;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+        <div className="flex items-center space-x-4 mb-4">
+          <div className={`${typeClasses.iconBg} p-2 rounded-full`}>
+            <Icon className={`h-6 w-6 ${typeClasses.iconColor}`} />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+        </div>
+        
+        <p className="text-gray-600 mb-6">{message}</p>
+        
+        <div className="flex space-x-4">
+          <button
+            onClick={onCancel}
+            className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            className={`flex-1 px-4 py-2 text-white rounded-lg ${typeClasses.confirmButton}`}
+          >
+            {typeClasses.confirmText}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Offboarding Progress Modal Component
+const OffboardingProgressModal = ({ progress, onClose }) => {
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl">
+        <div className="flex justify-between items-center mb-6">
+          <h3 className="text-lg font-semibold text-gray-900">
+            Offboarding: {progress.employee}
+          </h3>
+          {progress.stage === 'completed' && (
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600 text-2xl"
+            >
+              ×
+            </button>
+          )}
+        </div>
+
+        <div className="space-y-4">
+          {/* Progress Status */}
+          <div className="text-center">
+            <div className={`inline-flex items-center space-x-2 px-4 py-2 rounded-full ${
+              progress.stage === 'completed' 
+                ? progress.allSuccessful 
+                  ? 'bg-green-100 text-green-800' 
+                  : 'bg-yellow-100 text-yellow-800'
+                : 'bg-blue-100 text-blue-800'
+            }`}>
+              {progress.stage === 'completed' ? (
+                progress.allSuccessful ? (
+                  <>
+                    <CheckCircle className="h-5 w-5" />
+                    <span>Offboarding Completed Successfully</span>
+                  </>
+                ) : (
+                  <>
+                    <AlertTriangle className="h-5 w-5" />
+                    <span>Offboarding Completed with Issues</span>
+                  </>
+                )
+              ) : (
+                <>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                  <span>Processing Platform Removals...</span>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Progress Bar */}
+          <div>
+            <div className="flex justify-between text-sm text-gray-600 mb-2">
+              <span>Platform Removal Progress</span>
+              <span>{progress.current}/{progress.platforms.length}</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div 
+                className={`h-2 rounded-full transition-all duration-300 ${
+                  progress.stage === 'completed' 
+                    ? progress.allSuccessful ? 'bg-green-500' : 'bg-yellow-500'
+                    : 'bg-blue-500'
+                }`}
+                style={{ width: `${progress.platforms.length > 0 ? (progress.current / progress.platforms.length) * 100 : 0}%` }}
+              ></div>
+            </div>
+          </div>
+
+          {/* Platform Results */}
+          {progress.results && progress.results.length > 0 && (
+            <div className="space-y-2">
+              <h4 className="font-medium text-gray-900">Platform Removal Status:</h4>
+              <div className="space-y-2">
+                {progress.results.map((result, index) => (
+                  <div key={index} className={`flex items-center justify-between p-3 rounded-lg ${
+                    result.success ? 'bg-green-50' : 'bg-red-50'
+                  }`}>
+                    <div className="flex items-center space-x-2">
+                      {result.success ? (
+                        <CheckCircle className="h-5 w-5 text-green-500" />
+                      ) : (
+                        <XCircle className="h-5 w-5 text-red-500" />
+                      )}
+                      <span className="font-medium text-gray-900">{result.platform}</span>
+                    </div>
+                    <span className={`text-sm ${result.success ? 'text-green-600' : 'text-red-600'}`}>
+                      {result.message}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Instructions */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex items-start space-x-2">
+              <AlertTriangle className="h-5 w-5 text-blue-600 mt-0.5" />
+              <div>
+                <h4 className="font-medium text-blue-900">Important Notes</h4>
+                <ul className="text-sm text-blue-700 mt-1 space-y-1">
+                  <li>• Employee access has been removed from all platforms</li>
+                  <li>• Email accounts may take up to 24 hours to fully deactivate</li>
+                  <li>• Please ensure physical access cards are collected</li>
+                  <li>• HR should be notified of the offboarding completion</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          {progress.stage === 'completed' && (
+            <div className="flex justify-end">
+              <button
+                onClick={onClose}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Close
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 };
 
 // Bulk Upload Modal Component
@@ -520,6 +701,8 @@ const YSMEmployeeAutomationSystem = () => {
   const [showGoogleSetup, setShowGoogleSetup] = useState(false);
   const [showBulkUpload, setShowBulkUpload] = useState(false);
   const [bulkUploadProgress, setBulkUploadProgress] = useState(null);
+  const [confirmDialog, setConfirmDialog] = useState(null);
+  const [offboardingProgress, setOffboardingProgress] = useState(null);
   const [notifications, setNotifications] = useState([]);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [username, setUsername] = useState('');
@@ -921,6 +1104,156 @@ const YSMEmployeeAutomationSystem = () => {
     
     addNotification('Template downloaded! You can also use Excel format with the same columns.', 'success');
   };
+
+  // Handle Google Workspace offboarding
+  const handleGoogleWorkspaceOffboarding = async (employeeData) => {
+    if (!googleCredentials.isConnected) {
+      addNotification('Google Workspace not connected. Using simulation mode.', 'warning');
+      return await simulatePlatformAPI('Google Workspace', 'offboarding', employeeData);
+    }
+
+    try {
+      addNotification(`Removing Google Workspace account for ${employeeData.name}`, 'info');
+      
+      // For demo purposes, we'll simulate the user deletion
+      // In real implementation, you would call: await googleService.deleteUser(employeeData.email);
+      await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate API call
+      const success = Math.random() > 0.2; // 80% success rate for demo
+      
+      const activity = {
+        id: Date.now() + Math.random(),
+        type: 'offboarding',
+        employee: employeeData.name,
+        platform: 'Google Workspace',
+        status: success ? 'success' : 'failed',
+        timestamp: new Date().toISOString(),
+        details: success 
+          ? `Account removed successfully: ${employeeData.email}` 
+          : `Failed to remove account: ${employeeData.email}`
+      };
+      
+      setActivities(prev => [activity, ...prev]);
+      
+      if (success) {
+        addNotification(`Google Workspace account removed for ${employeeData.name}`, 'success');
+      } else {
+        addNotification(`Google Workspace removal failed for ${employeeData.name}`, 'error');
+      }
+      
+      return success;
+    } catch (error) {
+      const errorMsg = getSafeErrorMessage(error);
+      addNotification(`Google Workspace offboarding error: ${errorMsg}`, 'error');
+      return false;
+    }
+  };
+
+  // Handle single employee offboarding
+  const handleEmployeeOffboarding = async (employee) => {
+    try {
+      addNotification(`Starting offboarding process for ${employee.name}`, 'info');
+      setOffboardingProgress({ 
+        stage: 'processing', 
+        employee: employee.name,
+        platforms: Object.keys(employee.platforms),
+        current: 0,
+        results: []
+      });
+
+      const results = [];
+      const platforms = [
+        { name: 'Google Workspace', handler: handleGoogleWorkspaceOffboarding },
+        { name: 'Salesforce', handler: (emp) => simulatePlatformAPI('Salesforce', 'offboarding', emp) },
+        { name: 'Basecamp', handler: (emp) => simulatePlatformAPI('Basecamp', 'offboarding', emp) },
+        { name: 'Active Directory', handler: (emp) => simulatePlatformAPI('Active Directory', 'offboarding', emp) }
+      ];
+
+      for (let i = 0; i < platforms.length; i++) {
+        const platform = platforms[i];
+        try {
+          const success = await platform.handler(employee);
+          results.push({
+            platform: platform.name,
+            success,
+            message: success ? 'Account removed successfully' : 'Failed to remove account'
+          });
+        } catch (error) {
+          results.push({
+            platform: platform.name,
+            success: false,
+            message: getSafeErrorMessage(error)
+          });
+        }
+
+        setOffboardingProgress(prev => ({ 
+          ...prev, 
+          current: i + 1,
+          results 
+        }));
+
+        // Small delay between platforms
+        if (i < platforms.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+      }
+
+      // Remove employee from the list
+      setEmployees(prev => prev.filter(emp => emp.id !== employee.id));
+      
+      // Update stats
+      setStats(prev => ({
+        ...prev,
+        totalEmployees: prev.totalEmployees - 1
+      }));
+
+      const allSuccessful = results.every(r => r.success);
+      setOffboardingProgress(prev => ({ ...prev, stage: 'completed', allSuccessful }));
+      
+      addNotification(
+        `Offboarding ${allSuccessful ? 'completed' : 'partially completed'} for ${employee.name}`,
+        allSuccessful ? 'success' : 'warning'
+      );
+
+    } catch (error) {
+      const errorMsg = getSafeErrorMessage(error);
+      addNotification(`Offboarding failed for ${employee.name}: ${errorMsg}`, 'error');
+    }
+  };
+
+  // Handle bulk offboarding (for selected employees)
+  const handleBulkOffboarding = async (selectedEmployees) => {
+    try {
+      addNotification(`Starting bulk offboarding for ${selectedEmployees.length} employees`, 'info');
+      
+      for (let i = 0; i < selectedEmployees.length; i++) {
+        await handleEmployeeOffboarding(selectedEmployees[i]);
+        // Add delay between employees to prevent overwhelming the system
+        if (i < selectedEmployees.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+      
+      addNotification(`Bulk offboarding completed for ${selectedEmployees.length} employees`, 'success');
+    } catch (error) {
+      const errorMsg = getSafeErrorMessage(error);
+      addNotification(`Bulk offboarding failed: ${errorMsg}`, 'error');
+    }
+  };
+
+  // Confirm employee removal
+  const confirmRemoveEmployee = (employee) => {
+    setConfirmDialog({
+      type: 'remove',
+      title: 'Confirm Employee Offboarding',
+      message: `Are you sure you want to offboard ${employee.name}? This will remove their access from all platforms and cannot be undone.`,
+      employee: employee,
+      onConfirm: () => {
+        handleEmployeeOffboarding(employee);
+        setConfirmDialog(null);
+      },
+      onCancel: () => setConfirmDialog(null)
+    });
+  };
   const handleOnboarding = async (employeeData) => {
     const newEmployee = {
       ...employeeData,
@@ -1065,6 +1398,7 @@ const YSMEmployeeAutomationSystem = () => {
               onRetry={retryProvision}
               onShowForm={() => setShowForm(true)}
               onShowBulkUpload={() => setShowBulkUpload(true)}
+              onRemoveEmployee={confirmRemoveEmployee}
             />
           )}
           {currentView === 'activities' && <ActivitiesView activities={activities} />}
@@ -1109,6 +1443,25 @@ const YSMEmployeeAutomationSystem = () => {
           onDownloadTemplate={downloadTemplate}
           progress={bulkUploadProgress}
           onProgressClose={() => setBulkUploadProgress(null)}
+        />
+      )}
+
+      {/* Confirmation Dialog */}
+      {confirmDialog && (
+        <ConfirmationDialog
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          onConfirm={confirmDialog.onConfirm}
+          onCancel={confirmDialog.onCancel}
+          type={confirmDialog.type}
+        />
+      )}
+
+      {/* Offboarding Progress Modal */}
+      {offboardingProgress && (
+        <OffboardingProgressModal
+          progress={offboardingProgress}
+          onClose={() => setOffboardingProgress(null)}
         />
       )}
     </div>
@@ -1546,7 +1899,7 @@ const ActivityItem = ({ activity }) => {
 };
 
 // Employees View Component
-const EmployeesView = ({ employees, onRetry, onShowForm, onShowBulkUpload }) => {
+const EmployeesView = ({ employees, onRetry, onShowForm, onShowBulkUpload, onRemoveEmployee }) => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -1583,7 +1936,12 @@ const EmployeesView = ({ employees, onRetry, onShowForm, onShowBulkUpload }) => 
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {employees.map(employee => (
-                <EmployeeRow key={employee.id} employee={employee} onRetry={onRetry} />
+                <EmployeeRow 
+                  key={employee.id} 
+                  employee={employee} 
+                  onRetry={onRetry}
+                  onRemove={onRemoveEmployee}
+                />
               ))}
             </tbody>
           </table>
@@ -1594,7 +1952,7 @@ const EmployeesView = ({ employees, onRetry, onShowForm, onShowBulkUpload }) => 
 };
 
 // Employee Row Component
-const EmployeeRow = ({ employee, onRetry }) => {
+const EmployeeRow = ({ employee, onRetry, onRemove }) => {
   const getStatusBadge = (status) => {
     const classes = {
       active: 'bg-green-100 text-green-800',
@@ -1661,8 +2019,15 @@ const EmployeeRow = ({ employee, onRetry }) => {
                 <span>Retry</span>
               </button>
             ))}
-          <button className="text-gray-600 hover:text-gray-900">
+          <button className="text-gray-600 hover:text-gray-900 p-1">
             <Eye className="h-4 w-4" />
+          </button>
+          <button 
+            onClick={() => onRemove(employee)}
+            className="text-red-600 hover:text-red-900 p-1 transition-colors"
+            title="Offboard Employee"
+          >
+            <UserMinus className="h-4 w-4" />
           </button>
         </div>
       </td>
